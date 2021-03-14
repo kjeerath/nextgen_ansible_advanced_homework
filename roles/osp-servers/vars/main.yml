@@ -1,11 +1,107 @@
 ---
-# vars file for osp.servers
+openstack_cloud: openstack
+provisioning_ssh_key: mykey.pem
+
+
+openstack_images:
+
+  - name: rhel-guest
+    cloud: openstack
+    fetch: true
+    state: present
+    container_format: bare
+    disk_format: qcow2
+    file_name: /tmp/rhel-guest.qcow2
+    src_url: https://www.opentlc.com/download/ansible_bootcamp/repo/internal.repo
+
+openstack_flavors:
+
+  - name: m1.medium
+    cloud: openstack
+    state: present
+    vcpus: 1
+    ram: 2048
+    disk: 20
+
+openstack_keypair:
+
+  name: mykey.pem
+  cloud: openstack
+  state: present
+  public_key_file: "{{ ansible_env.HOME }}/.ssh/{{ openstack_cloud }}.pub"
+
+
+openstack_networks:
+
+  - cloud_name: openstack
+    network_name: ext_network
+    state: present
+    provider_network_type: flat
+    provider_physical_network: datacentre
+    subnet_name: ext_subnet
+    cidr_network: "192.0.2.0/24"
+    external: true
+    gateway_ip: 192.0.2.254
+    admin_state: yes
+    ip_version: 4
+    enable_dhcp: no
+    allocation_pool_start: 192.0.2.150
+    allocation_pool_end: 192.0.2.200
+
+  - cloud_name: openstack
+    network_name: int_network
+    subnet_name: int_subnet
+    cidr_network: "172.16.0.0/24"
+    state: present
+    external: false
+    admin_state: yes
+    ip_version: 4
+    enable_dhcp: yes
+
+openstack_routers:
+
+  - name: router
+    cloud_name: openstack
+    state: present
+    network: ext_network
+    interfaces: int_subnet
+
+openstack_security_grouips: []
+
+openstack_servers:
+
+
+  - instance_name: app1
+    group: app_servers
+    deployment: QA 
+    security_group_name: apps
+    image: "{{ _server_image | default('rhel-guest') }}"
+
+  - instance_name: app2
+    group: app_servers
+    deployment: QA
+    security_group_name: apps
+    image: "{{ _server_image | default('rhel-guest') }}"
+
+  - instance_name: db
+    group: database_servers
+    deployment: QA
+    security_group_name: db
+    image: "{{ _server_image | default('rhel-guest') }}"
+
+  - instance_name: frontend1
+    group: load_balancers
+    deployment: QA
+    security_group_name: frontend
+    image: "{{ _server_image | default('rhel-guest') }}"
+
 osp_servers:
+
   frontend:
     name: frontend
     state: present
     image: rhel-guest
-    key_name: ansible_ssh
+    key_name: mykey.pem
     flavor: m1.medium
     security_group: frontend
     meta:
@@ -14,7 +110,7 @@ osp_servers:
     name: app1
     state: present
     image: rhel-guest
-    key_name: ansible_ssh
+    key_name: mykey.pem
     flavor: m1.medium
     security_group: apps
     meta:
@@ -23,7 +119,7 @@ osp_servers:
     name: app2
     state: present
     image: rhel-guest
-    key_name: ansible_ssh
+    key_name: mykey.pem
     flavor: m1.medium
     security_group: apps
     meta:
@@ -32,8 +128,10 @@ osp_servers:
     name: db
     state: present
     image: rhel-guest
-    key_name: ansible_ssh
+    key_name: mykey.pem
     flavor: m1.medium
     security_group: db
     meta:
       - { group: appdbs, deployment_name: QA}
+
+...
